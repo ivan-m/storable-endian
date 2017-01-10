@@ -49,12 +49,12 @@ newtype BigEndian    a = BE { getBigEndian    :: a }
            , Generic)
 
 class HasLittleEndian a where
-  peekLE :: Ptr a -> IO a
-  pokeLE :: Ptr a -> a -> IO ()
+  peekLE :: Ptr Word8 -> IO a
+  pokeLE :: Ptr Word8 -> a -> IO ()
 
 class HasBigEndian a where
-  peekBE :: Ptr a -> IO a
-  pokeBE :: Ptr a -> a -> IO ()
+  peekBE :: Ptr Word8 -> IO a
+  pokeBE :: Ptr Word8 -> a -> IO ()
 
 instance (HasLittleEndian a, Storable a) => Storable (LittleEndian a) where
   sizeOf    (LE a)   = sizeOf a
@@ -87,16 +87,16 @@ instance HasLittleEndian Int64 where
   pokeLE = fork putWord64le castPtr unsafeCoerce
 
 instance HasLittleEndian Word16 where
-  peekLE = unsafeCoerce . getWord16le . castPtr
-  pokeLE = fork putWord16le castPtr unsafeCoerce
+  peekLE = getWord16le
+  pokeLE = putWord16le
 
 instance HasLittleEndian Word32 where
-  peekLE = unsafeCoerce . getWord32le . castPtr
-  pokeLE = fork putWord32le castPtr unsafeCoerce
+  peekLE = getWord32le
+  pokeLE = putWord32le
 
 instance HasLittleEndian Word64 where
-  peekLE = unsafeCoerce . getWord64le . castPtr
-  pokeLE = fork putWord64le castPtr unsafeCoerce
+  peekLE = getWord64le
+  pokeLE = putWord64le
 
 instance HasLittleEndian Float where
   peekLE = unsafeCoerce . getWord32le . castPtr
@@ -124,16 +124,16 @@ instance HasBigEndian Int64 where
   pokeBE = fork putWord64be castPtr unsafeCoerce
 
 instance HasBigEndian Word16 where
-  peekBE = unsafeCoerce . getWord16be . castPtr
-  pokeBE = fork putWord16be castPtr unsafeCoerce
+  peekBE = getWord16be
+  pokeBE = putWord16be
 
 instance HasBigEndian Word32 where
-  peekBE = unsafeCoerce . getWord32be . castPtr
-  pokeBE = fork putWord32be castPtr unsafeCoerce
+  peekBE = getWord32be
+  pokeBE = putWord32be
 
 instance HasBigEndian Word64 where
-  peekBE = unsafeCoerce . getWord64be . castPtr
-  pokeBE = fork putWord64be castPtr unsafeCoerce
+  peekBE = getWord64be
+  pokeBE = putWord64be
 
 instance HasBigEndian Float where
   peekBE = unsafeCoerce . getWord32be . castPtr
