@@ -20,8 +20,6 @@ module Data.Storable.Endian
   )
   where
 
-import System.ByteOrder
-
 import Foreign.Ptr
 import Foreign.Storable
 
@@ -156,51 +154,60 @@ instance HasBigEndian Double where
 
 -- | Write a Word16 in big endian format
 putWord16be :: Ptr Word8 -> Word16 -> IO ()
-putWord16be = if byteOrder == BigEndian
-              then \p w -> poke (castPtr p) w
-              else \p w -> do
+#ifdef WORDS_BIGENDIAN
+putWord16be = poke . castPtr
+#else
+putWord16be p w = do
     poke p               (fromIntegral (shiftr_w16 w 8) :: Word8)
     poke (p `plusPtr` 1) (fromIntegral (w)              :: Word8)
+#endif
 {-# INLINE putWord16be #-}
 
 -- | Write a Word16 in little endian format
 putWord16le :: Ptr Word8 -> Word16 -> IO ()
-putWord16le = if byteOrder == LittleEndian
-              then \p w -> poke (castPtr p) w
-              else \p w -> do
+#ifdef WORDS_BIGENDIAN
+putWord16le p w = do
     poke p               (fromIntegral (w)              :: Word8)
     poke (p `plusPtr` 1) (fromIntegral (shiftr_w16 w 8) :: Word8)
+#else
+putWord16le = poke . castPtr
+#endif
 {-# INLINE putWord16le #-}
 
 -- putWord16le w16 = writeN 2 (\p -> poke (castPtr p) w16)
 
 -- | Write a Word32 in big endian format
 putWord32be :: Ptr Word8 -> Word32 -> IO ()
-putWord32be = if byteOrder == BigEndian
-              then \p w -> poke (castPtr p) w
-              else \p w -> do
+#ifdef WORDS_BIGENDIAN
+putWord32be = poke . castPtr
+#else
+putWord32be p w = do
     poke p               (fromIntegral (shiftr_w32 w 24) :: Word8)
     poke (p `plusPtr` 1) (fromIntegral (shiftr_w32 w 16) :: Word8)
     poke (p `plusPtr` 2) (fromIntegral (shiftr_w32 w  8) :: Word8)
     poke (p `plusPtr` 3) (fromIntegral (w)               :: Word8)
+#endif
 {-# INLINE putWord32be #-}
 
 -- | Write a Word32 in little endian format
 putWord32le :: Ptr Word8 -> Word32 -> IO ()
-putWord32le = if byteOrder == LittleEndian
-              then \p w -> poke (castPtr p) w
-              else \p w -> do
+#ifdef WORDS_BIGENDIAN
+putWord32le p w = do
     poke p               (fromIntegral (w)               :: Word8)
     poke (p `plusPtr` 1) (fromIntegral (shiftr_w32 w  8) :: Word8)
     poke (p `plusPtr` 2) (fromIntegral (shiftr_w32 w 16) :: Word8)
     poke (p `plusPtr` 3) (fromIntegral (shiftr_w32 w 24) :: Word8)
+#else
+putWord32le = poke . castPtr
+#endif
 {-# INLINE putWord32le #-}
 
 -- | Write a Word64 in big endian format
 putWord64be :: Ptr Word8 -> Word64 -> IO ()
-putWord64be = if byteOrder == BigEndian
-              then \p w -> poke (castPtr p) w
-              else \p w -> do
+#ifdef WORDS_BIGENDIAN
+putWord64be = poke . castPtr
+#else
+putWord64be p w = do
 #if WORD_SIZE_IN_BITS < 64
 --
 -- To avoid expensive 64 bit shifts on 32 bit machines, we cast to
@@ -225,14 +232,14 @@ putWord64be = if byteOrder == BigEndian
     poke (p `plusPtr` 5) (fromIntegral (shiftr_w64 w 16) :: Word8)
     poke (p `plusPtr` 6) (fromIntegral (shiftr_w64 w  8) :: Word8)
     poke (p `plusPtr` 7) (fromIntegral (w)               :: Word8)
-#endif
+#endif /* WORD_SIZE_IN_BITS */
+#endif /* WORDS_BIGENDIAN */
 {-# INLINE putWord64be #-}
 
 -- | Write a Word64 in little endian format
 putWord64le :: Ptr Word8 -> Word64 -> IO ()
-putWord64le = if byteOrder == LittleEndian
-              then \p w -> poke (castPtr p) w
-              else \p w -> do
+#ifdef WORDS_BIGENDIAN
+putWord64le p w = do
 #if WORD_SIZE_IN_BITS < 64
     let b = fromIntegral (shiftr_w64 w 32) :: Word32
         a = fromIntegral w                 :: Word32
@@ -253,38 +260,46 @@ putWord64le = if byteOrder == LittleEndian
     poke (p `plusPtr` 5) (fromIntegral (shiftr_w64 w 40) :: Word8)
     poke (p `plusPtr` 6) (fromIntegral (shiftr_w64 w 48) :: Word8)
     poke (p `plusPtr` 7) (fromIntegral (shiftr_w64 w 56) :: Word8)
-#endif
+#endif /* WORD_SIZE_IN_BITS */
+#else
+putWord64le = poke . castPtr
+#endif /* WORDS_BIGENDIAN */
 {-# INLINE putWord64le #-}
 
 -- on a little endian machine:
 -- putWord64le w64 = writeN 8 (\p -> poke (castPtr p) w64)
 -- | Read a Word16 in big endian format
 getWord16be :: Ptr Word8 -> IO Word16
-getWord16be = if byteOrder == BigEndian
-              then \p -> peek (castPtr p)
-              else \p -> do
+#ifdef WORDS_BIGENDIAN
+getWord16be = peek . castPtr
+#else
+getWord16be p = do
     b0 <- fromIntegral `fmap` (p `peekElemOff` 0)
     b1 <- fromIntegral `fmap` (p `peekElemOff` 1)
     return $! (b0 `shiftl_w16` 8) .|.
               (b1 )
+#endif
 {-# INLINE getWord16be #-}
 
 -- | Read a Word16 in little endian format
 getWord16le :: Ptr Word8 -> IO Word16
-getWord16le = if byteOrder == LittleEndian
-              then \p -> peek (castPtr p)
-              else \p -> do
+#ifdef WORDS_BIGENDIAN
+getWord16le p = do
     b0 <- fromIntegral `fmap` (p `peekElemOff` 0)
     b1 <- fromIntegral `fmap` (p `peekElemOff` 1)
     return $! (b1 `shiftl_w16` 8) .|.
               (b0 )
+#else
+getWord16le = peek . castPtr
+#endif
 {-# INLINE getWord16le #-}
 
 -- | Read a Word32 in big endian format
 getWord32be :: Ptr Word8 -> IO Word32
-getWord32be = if byteOrder == BigEndian
-              then \p -> peek (castPtr p)
-              else \p -> do
+#ifdef WORDS_BIGENDIAN
+getWord32be = peek . castPtr
+#else
+getWord32be p = do
     b0 <- fromIntegral `fmap` (p `peekElemOff` 0)
     b1 <- fromIntegral `fmap` (p `peekElemOff` 1)
     b2 <- fromIntegral `fmap` (p `peekElemOff` 2)
@@ -293,13 +308,13 @@ getWord32be = if byteOrder == BigEndian
               (b1 `shiftl_w32` 16) .|.
               (b2 `shiftl_w32`  8) .|.
               (b3 )
+#endif
 {-# INLINE getWord32be #-}
 
 -- | Read a Word32 in little endian format
 getWord32le :: Ptr Word8 -> IO Word32
-getWord32le = if byteOrder == LittleEndian
-              then \p -> peek (castPtr p)
-              else \p -> do
+#ifdef WORDS_BIGENDIAN
+getWord32le p = do
     b0 <- fromIntegral `fmap` (p `peekElemOff` 0)
     b1 <- fromIntegral `fmap` (p `peekElemOff` 1)
     b2 <- fromIntegral `fmap` (p `peekElemOff` 2)
@@ -308,13 +323,17 @@ getWord32le = if byteOrder == LittleEndian
               (b2 `shiftl_w32` 16) .|.
               (b1 `shiftl_w32`  8) .|.
               (b0 )
+#else
+getWord32le = peek . castPtr
+#endif
 {-# INLINE getWord32le #-}
 
 -- | Read a Word64 in big endian format
 getWord64be :: Ptr Word8 -> IO Word64
-getWord64be = if byteOrder == BigEndian
-              then \p -> peek (castPtr p)
-              else \p -> do
+#ifdef WORDS_BIGENDIAN
+getWord64be = peek . castPtr
+#else
+getWord64be p = do
     b0 <- fromIntegral `fmap` (p `peekElemOff` 0)
     b1 <- fromIntegral `fmap` (p `peekElemOff` 1)
     b2 <- fromIntegral `fmap` (p `peekElemOff` 2)
@@ -331,13 +350,13 @@ getWord64be = if byteOrder == BigEndian
               (b5 `shiftl_w64` 16) .|.
               (b6 `shiftl_w64`  8) .|.
               (b7 )
+#endif
 {-# INLINE getWord64be #-}
 
 -- | Read a Word64 in little endian format
 getWord64le :: Ptr Word8 -> IO Word64
-getWord64le = if byteOrder == LittleEndian
-              then \p -> peek (castPtr p)
-              else \p -> do
+#ifdef WORDS_BIGENDIAN
+getWord64le p = do
     b0 <- fromIntegral `fmap` (p `peekElemOff` 0)
     b1 <- fromIntegral `fmap` (p `peekElemOff` 1)
     b2 <- fromIntegral `fmap` (p `peekElemOff` 2)
@@ -354,6 +373,9 @@ getWord64le = if byteOrder == LittleEndian
               (b2 `shiftl_w64` 16) .|.
               (b1 `shiftl_w64`  8) .|.
               (b0 )
+#else
+getWord64le = peek . castPtr
+#endif
 {-# INLINE getWord64le #-}
 
 ------------------------------------------------------------------------

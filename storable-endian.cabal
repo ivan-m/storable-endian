@@ -17,14 +17,13 @@ Source-repository head
 flag splitbase
   description: Choose the new smaller, split-up base package.
 
-library 
+library
   if flag(splitbase)
     Build-Depends: base >= 3 && < 5
   else
     Build-Depends: base < 3
 
-  Build-Depends: byteorder
   Exposed-Modules: Data.Storable.Endian
-  Extensions: 
+  Extensions:
     MagicHash
    ,CPP
